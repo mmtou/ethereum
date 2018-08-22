@@ -25,9 +25,9 @@
       </mu-button>
 
       <mu-dialog title="创建密码" width="auto" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">
-
-        <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">取消</mu-button>
-        <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">好的</mu-button>
+        <mu-text-field v-model="password" placeholder="请输入密码" :action-icon="visibility ? 'visibility_off' : 'visibility'" :action-click="() => (visibility = !visibility)" :type="visibility ? 'text' : 'password'"></mu-text-field>
+        <mu-button slot="actions" flat color="primary" @click="hideAddAccount">取消</mu-button>
+        <mu-button slot="actions" flat color="primary" @click="hideAddAccount">好的</mu-button>
       </mu-dialog>
     </div>
     <div v-if="1 == activated">
@@ -44,12 +44,18 @@
 export default {
   data() {
     return {
-      activated: 0
+      activated: 0,
+      openAlert: false,
+      password: '',
+      visibility: false
     }
   },
   methods: {
     showAddAccount() {
-
+      this.openAlert = true;
+    },
+    hideAddAccount() {
+      this.openAlert = false;
     }
   }
 }

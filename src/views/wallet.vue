@@ -1,23 +1,31 @@
 <template>
 <div class="wallet">
-  <mu-alert color="success" v-if="showTips">
+  <mu-alert color="success" delete v-if="showTips" @delete="closeAlert()">
     {{message}}
   </mu-alert>
 
   <div class="right">
-    <mu-button icon @click="showAddAccount">
-      <mu-icon :size="48" color="primary" value="add"></mu-icon>
-    </mu-button>
+    <mu-tooltip content="开户">
+      <mu-button icon @click="showAddAccount">
+        <mu-icon :size="48" color="primary" value="add"></mu-icon>
+      </mu-button>
+    </mu-tooltip>
+    <mu-tooltip content="刷新账户列表">
+      <mu-button icon @click="accountList">
+        <mu-icon :size="48" value="refresh"></mu-icon>
+      </mu-button>
+    </mu-tooltip>
     <mu-dialog title="开户" width="auto" :esc-press-close="false" :overlay-close="false" :open.sync="openAddAccountAlert">
       <mu-text-field v-model="password" placeholder="请输入密码" :action-icon="visibility ? 'visibility_off' : 'visibility'" :action-click="() => (visibility = !visibility)" :type="visibility ? 'text' : 'password'"></mu-text-field>
       <mu-button slot="actions" flat @click="hideAddAccount">取消</mu-button>
-      <mu-button slot="actions" flat color="primary" @click="addAccount">好的</mu-button>
+      <mu-button slot="actions" v-loading="loading" data-mu-loading-size="24" flat color="primary" @click="addAccount">确定</mu-button>
     </mu-dialog>
   </div>
 
+  <mu-sub-header>账户列表</mu-sub-header>
   <mu-data-table stripe border :columns="columns" :data="list">
     <template slot-scope="scope">
-      <td>{{scope.row.index}}</td>
+      <td class="is-center">{{scope.row.index}}</td>
       <td>
         {{scope.row.account}}
       </td>
@@ -36,9 +44,8 @@
     <mu-text-field v-model="transactionForm.amount" placeholder="转账金额" type="number" suffix="ETH"></mu-text-field><br/>
     <mu-text-field v-model="transactionForm.password" placeholder="请输入密码" :action-icon="visibility ? 'visibility_off' : 'visibility'" :action-click="() => (visibility = !visibility)" :type="visibility ? 'text' : 'password'"></mu-text-field>
     <mu-button slot="actions" flat @click="hideTransaction">取消</mu-button>
-    <mu-button slot="actions" flat color="primary" @click="transaction">好的</mu-button>
+    <mu-button slot="actions" v-loading="loading" data-mu-loading-size="24" flat color="primary" @click="transaction">确定</mu-button>
   </mu-dialog>
-
 </div>
 </template>
 
@@ -68,10 +75,14 @@ export default {
         password: '',
         amount: ''
       },
-      currentAccount: ''
+      currentAccount: '',
+      loading: false
     }
   },
   methods: {
+    closeAlert() {
+      this.showTips = false;
+    },
     accountList() {
       this.list = [];
       const defaultAccount = this.$web3.eth.defaultAccount
@@ -82,7 +93,7 @@ export default {
             this.list.push({
               index: index,
               account: account,
-              balance: formatAmount(this.$web3.utils.fromWei(balance)) + ' ETH',
+              balance: formatAmount(this.$web3.utils.fromWei(balance)) + ' ETHER',
               // balance: balance + ' wei',
             });
           });
@@ -96,6 +107,10 @@ export default {
       this.openAddAccountAlert = false;
     },
     addAccount() {
+      if (this.loading) {
+        return;
+      }
+      this.loading = true;
       if (this.password) {
         this.$web3.eth.personal.newAccount(this.password).then(response => {
           this.message = '开户成功';
@@ -103,6 +118,7 @@ export default {
           this.showTips = true;
           this.openAddAccountAlert = false;
           this.accountList();
+          this.loading = false;
         });
       }
     },
@@ -114,6 +130,10 @@ export default {
       this.openTransactionAlert = false;
     },
     transaction() {
+      if (this.loading) {
+        return;
+      }
+      this.loading = true;
       this.$web3.eth.personal.unlockAccount(this.currentAccount, this.transactionForm.password, 600).then(response => {
         this.$web3.eth.sendTransaction({
           from: this.currentAccount,
@@ -121,11 +141,12 @@ export default {
           value: this.$web3.utils.toWei(this.transactionForm.amount, 'ether')
         }).then(receipt => {
           console.log(receipt);
-          this.message = '开户成功';
+          this.message = '转账成功';
           this.showTips = true;
           this.openTransactionAlert = false;
 
           this.accountList();
+          this.loading = false;
         });
       });
     }
